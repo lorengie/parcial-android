@@ -5,9 +5,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.R
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -38,6 +39,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -45,144 +48,122 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import coil.compose.rememberAsyncImagePainter
+import coil.request.ImageRequest
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
-fun PantallaPrincipal(navController: NavController, viewModel: MainViewModel) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Catálogo de Productos") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
-        },
-        floatingActionButton = {
-            Column {
-                FloatingActionButton(
-                    onClick = { navController.navigate("carrito") },
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                ) {
-                    Icon(
-                        Icons.Filled.ShoppingCart,
-                        contentDescription = "Carrito",
-                        tint = MaterialTheme.colorScheme.onSecondary
-                    )
-                }
-                FloatingActionButton(
-                    onClick = { navController.navigate("registro") },
-                    containerColor = MaterialTheme.colorScheme.primary
-                ) {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = "Agregar",
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            }
-        }
-    ) { innerPadding ->
+fun PantallaCatalogo(navController: NavController, viewModel: AppViewModel) {
+    var productoAEliminar by remember { mutableStateOf<Producto?>(null) }
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFFFF3E0)),
+        contentAlignment = Alignment.Center
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+                .fillMaxWidth(0.9f)
+                .fillMaxHeight()
+                .padding(top = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-            ) {
-                items(viewModel.listaProductos) { producto ->
-                    ProductoCard(producto, navController)
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                items(viewModel.productos) { producto ->
+                    Card(
+                        modifier = Modifier
+                            .padding(8.dp)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.White)
+                            .clickable { navController.navigate("detalle/${producto.id}") },
+                        elevation = CardDefaults.cardElevation(6.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            AsyncImage(
+                                model = ImageRequest.Builder(LocalContext.current)
+                                    .data(producto.imagenUrl)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .padding(8.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                Column(modifier = Modifier.weight(1f).padding(8.dp)) {
+                                    Text(producto.nombre, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                    Text("Precio: $${producto.precio}", color = Color(0xFF388E3C))
+                                }
+                                IconButton(onClick = { productoAEliminar = producto }) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Eliminar", tint = Color.Red)
+                                }
+                            }
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                Text(text = producto.nombre, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text(text = "Precio: $${producto.precio}", color = Color(0xFF388E3C))
+                            }
+                        }
+                    }
                 }
             }
+            productoAEliminar?.let { producto ->
+                AlertDialog(
+                    onDismissRequest = { productoAEliminar = null },
+                    title = { Text("Confirmar eliminación") },
+                    text = { Text("¿Estás seguro de que quieres eliminar '${producto.nombre}'?") },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            viewModel.eliminarProductoPorId(producto.id)
+                            productoAEliminar = null
+                        }) {
+                            Text("Sí", color = Color.Red)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { productoAEliminar = null }) {
+                            Text("Cancelar")
+                        }
+                    }
+                )
+            }
 
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+
+
+            Text(
+                "Total carrito: $${viewModel.obtenerTotal()}",
+                modifier = Modifier.padding(8.dp),
+                fontWeight = FontWeight.Bold
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Button(
+                    onClick = { navController.navigate("registro") },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF7043))
                 ) {
-                    Text(
-                        text = "Total: $${"%.2f".format(viewModel.carrito.sumOf { it.precio })}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "${viewModel.carrito.size} items",
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+                    Text("Agregar Producto")
+                }
+                Button(
+                    onClick = { navController.navigate("carrito") },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800))
+                ) {
+                    Text("Ver Carrito")
                 }
             }
+
         }
     }
 }
 
-@Composable
-fun ProductoCard(producto: Producto, navController: NavController) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .clickable { navController.navigate("detalle/${producto.id}") },
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                AsyncImage(
-                    model = producto.imagenUrl,
-                    contentDescription = producto.nombre,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = producto.nombre,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = producto.descripcion,
-                    style = MaterialTheme.typography.bodySmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "$${"%.2f".format(producto.precio)}",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}

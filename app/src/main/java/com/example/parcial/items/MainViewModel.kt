@@ -1,46 +1,39 @@
 package com.example.parcial.items
 import androidx.compose.runtime.mutableStateListOf
 import androidx.lifecycle.ViewModel
-import kotlin.random.Random
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
-class MainViewModel : ViewModel() {
-    private val _listaProductos = mutableStateListOf<Producto>()
-    val listaProductos: List<Producto> get() = _listaProductos
+class AppViewModel : ViewModel() {
+    var productos = mutableStateListOf<Producto>()
+        private set
 
-    private val _carrito = mutableStateListOf<Producto>()
-    val carrito: List<Producto> get() = _carrito
-
-    init {
-        agregarProducto("Smartphone", 599.99, "Teléfono inteligente", "https://example.com/phone.jpg")
-        agregarProducto("Laptop", 999.99, "Computadora portátil", "https://example.com/laptop.jpg")
-    }
-
-    fun agregarProducto(nombre: String, precio: Double, descripcion: String, imagenUrl: String) {
-        val nuevoId = if (_listaProductos.isEmpty()) 1 else _listaProductos.maxOf { it.id } + 1
-        _listaProductos.add(
-            Producto(
-                id = nuevoId,
-                nombre = nombre,
-                precio = precio,
-                descripcion = descripcion,
-                imagenUrl = imagenUrl
-            )
-        )
-    }
-
-    fun obtenerProductoPorId(id: Int): Producto? {
-        return _listaProductos.find { it.id == id }
+    var carrito = mutableStateListOf<Producto>()
+        private set
+    fun agregarProducto(producto: Producto) {
+        productos.add(producto)
     }
 
     fun agregarAlCarrito(producto: Producto) {
-        _carrito.add(producto)
+        val existente = carrito.find { it.id == producto.id }
+        if (existente != null) {
+            existente.cantidad += 1
+        } else {
+            carrito.add(producto.copy(cantidad = 1))
+        }
     }
 
-    fun removerDelCarrito(producto: Producto) {
-        _carrito.remove(producto)
+    fun obtenerTotal(): Double {
+        return carrito.sumOf { it.precio * it.cantidad }
     }
 
-    fun limpiarCarrito() {
-        _carrito.clear()
+    fun finalizarCompra() {
+        carrito.clear()
+    }
+    fun eliminarProductoPorId(id: Int) {
+        productos.removeIf { it.id == id }
     }
 }

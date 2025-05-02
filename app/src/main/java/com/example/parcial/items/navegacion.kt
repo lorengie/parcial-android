@@ -1,36 +1,30 @@
 package com.example.parcial.items
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Navegacion() {
+fun Navegacion(viewModel: AppViewModel = viewModel()) {
     val navController = rememberNavController()
-    val viewModel: MainViewModel = viewModel()
-
-    NavHost(
-        navController = navController,
-        startDestination = "principal"
-    ) {
-        composable("principal") {
-            PantallaPrincipal(navController, viewModel)
+    NavHost(navController = navController, startDestination = "catalogo") {
+        composable("catalogo") {
+            PantallaCatalogo(navController, viewModel)
         }
         composable("registro") {
-            Registro(navController, viewModel)
-        }
-        composable("detalle/{id}") { backStackEntry ->
-            val id = backStackEntry.arguments?.getString("id")?.toIntOrNull() ?: -1
-            Detalle(navController, id, viewModel)
+            PantallaRegistro(navController, viewModel)
         }
         composable("carrito") {
-            Carrito(navController, viewModel)
+            PantallaCarrito(navController, viewModel)
+        }
+        composable("detalle/{productoId}") { backStackEntry ->
+            val id = backStackEntry.arguments?.getString("productoId")?.toIntOrNull() ?: -1
+            PantallaDetalle(id, navController, viewModel)
         }
     }
 }
+
 
 
 
